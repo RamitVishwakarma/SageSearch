@@ -28,8 +28,8 @@ const productSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Zephyr',
-  description: 'Zephyr is an llm powered chatbot.',
+  title: 'SageSearch',
+  description: 'SageSearch is an llm powered chatbot.',
 };
 
 export default function RootLayout({

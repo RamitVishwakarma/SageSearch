@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { generateEmbedding } = require('../src/services/embedder');
 const { upsertVectors } = require('../src/services/vectorStore');
-const { v4: uuidv4 } = require('uuid');
 
 const DATA_DIR = path.join(__dirname, '../data/texts');
 const CHUNK_SIZE = 1000; // characters
@@ -23,7 +23,7 @@ const chunkText = (text, source) => {
     const end = Math.min(start + CHUNK_SIZE, text.length);
     const chunkText = text.slice(start, end);
     chunks.push({
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       values: [], // to be filled
       metadata: {
         text: chunkText,
@@ -36,43 +36,6 @@ const chunkText = (text, source) => {
   return chunks;
 };
 
-const cleanText = (text) => {
-  // 1. Remove Project Gutenberg Header/Footer
-  const startMarker = /\*\*\* START OF THE PROJECT GUTENBERG EBOOK .* \*\*\*/;
-  const endMarker = /\*\*\* END OF THE PROJECT GUTENBERG EBOOK .* \*\*\*/;
-  
-  const startMatch = text.match(startMarker);
-  if (startMatch) {
-    text = text.substring(startMatch.index + startMatch[0].length);
-  }
-  
-  const endMatch = text.match(endMarker);
-  if (endMatch) {
-    text = text.substring(0, endMatch.index);
-  }
-
-  // 2. Remove specific noise patterns (Page numbers, Headers, Copyright)
-  return text
-    .split('\n')
-    .filter(line => {
-      const t = line.trim();
-      // Remove empty lines (we'll normalize spacing later)
-      if (!t) return false;
-      // Remove page numbers (lines with only digits)
-      if (/^\d+$/.test(t)) return false;
-      // Remove specific headers
-      if (['WINGS OF FIRE', 'ORIENTATION', 'Contents', 'Preface', 'Acknowledgements'].includes(t)) return false;
-      // Remove copyright/publisher info
-      if (t.includes('Universities Press') || t.includes('Copyright') || t.includes('All Rights Reserved')) return false;
-      // Remove artifacts
-      if (t.includes('$ „ 1 1 & i * express')) return false;
-      
-      return true;
-    })
-    .join(' '); // Join with space to create continuous text, or '\n' if you prefer preserving lines. 
-                // For embeddings, continuous text often works better if chunks are character-based.
-};
-
 const main = async () => {
   try {
     console.log('Starting ingestion...');
@@ -81,10 +44,7 @@ const main = async () => {
 
     for (const file of files) {
       console.log(`Processing ${file.name}...`);
-      const cleanedContent = cleanText(file.content);
-      console.log(`  Content cleaned. Length: ${file.content.length} -> ${cleanedContent.length}`);
-      
-      const chunks = chunkText(cleanedContent, file.name);
+      const chunks = chunkText(file.content, file.name);
       
       // Process in batches to avoid rate limits and memory issues
       const BATCH_SIZE = 10;

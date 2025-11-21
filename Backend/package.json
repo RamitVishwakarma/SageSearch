@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "ingest": "node scripts/ingestData.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
